@@ -7,7 +7,7 @@ This project implements a basic Multimodal Retrieval-Augmented Generation (RAG) 
 ## Features
 
 *   **Text-based RAG**: Utilizes `sentence-transformers` for embedding generation and `FAISS` for efficient similarity search to retrieve relevant text documents from a knowledge base.
-*   **Google Gemini Integration**: Employs the `gemini-pro` model for generating context-aware responses based on user queries and retrieved information.
+*   **Google Gemini Integration**: Employs the `gemini-2.0-flash` (and other flash models) for generating context-aware responses based on user queries and retrieved information.
 *   **Multimodal Input Placeholders**: Includes Streamlit widgets for uploading images, audio, and video files, along with placeholder functions to simulate their analysis (object detection, OCR, speech-to-text, video summarization).
 *   **Environment Variable Management**: Uses `python-dotenv` for securely managing API keys and other configuration.
 *   **Interactive UI**: Built with Streamlit for a user-friendly web application.
@@ -18,7 +18,7 @@ The system follows a layered architecture:
 
 1.  **Multimodal Input Processing Layer**: Handles text queries directly and provides placeholders for processing images, voice, and video. In a full implementation, this layer would extract meaningful features or text from multimodal inputs.
 2.  **Retrieval Component**: Uses `SentenceTransformer` to create vector embeddings for text documents and `FAISS` for quick similarity search to find the most relevant information.
-3.  **Response Generation Layer**: Leverages Google Gemini (`gemini-pro`) to synthesize coherent and contextually relevant answers by combining the user's query with the retrieved documents.
+3.  **Response Generation Layer**: Leverages Google Gemini (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-flash`) to synthesize coherent and contextually relevant answers by combining the user's query with the retrieved documents.
 4.  **Streamlit UI Layer**: Provides the interactive interface for users to input queries and upload files, and to display the system's responses and insights.
 
 ```mermaid
@@ -48,7 +48,7 @@ graph TD;
     O --> P;
 
     subgraph LLM Response Generation
-        Q[Google Gemini (gemini-pro)]
+        Q[Google Gemini (Flash Models)]
     end
 
     C, L, M, N --> Q;
@@ -80,7 +80,7 @@ It's highly recommended to use a virtual environment to manage dependencies.
 
 ```bash
 python -m venv venv
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '.\venv\Scripts\Activate.ps1'"
+.venv\Scripts\Activate.ps1
 ```
 
 ### 3. Install Dependencies
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 ### 4. Configure Environment Variables
 
-Create a file named `.env` in the root of your project directory (`C:\Users\SA\Desktop\Streamlit\New app`). This file will store your API keys.
+Create a file named `.env` in the root of your project directory.
 
 Obtain a Google Gemini API Key from [Google AI Studio](https://aistudio.google.com/) or the Google Cloud Console. Add it to your `.env` file:
 
@@ -112,10 +112,10 @@ OPENAI_API_KEY="YOUR_OPENAI_API_KEY_HERE"
 Once the setup is complete and your virtual environment is active, run the Streamlit application:
 
 ```bash
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '.\venv\Scripts\Activate.ps1'; python -m streamlit run app.py"
+streamlit run app.py
 ```
 
-This command will activate the virtual environment and then launch the Streamlit application. A new tab should open in your default web browser displaying the RAG system UI.
+This command will launch the Streamlit application. A new tab should open in your default web browser displaying the RAG system UI.
 
 ## Future Enhancements
 

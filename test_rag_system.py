@@ -34,21 +34,19 @@ def mock_embedding_function():
     yield MagicMock()
 
 @pytest.fixture
-def rag_system_instance(sample_documents, mock_embedding_function):
-    # Configure side_effect for RAGSystem initialization
+def rag_system_instance(sample_documents):
+    # Create a separate mock for RAGSystem initialization
+    init_embedding_mock = MagicMock()
     init_embeddings = [
         np.array([0.9, 0.1, 0.1] + [0.0]*(384-3), dtype='float32'), # Doc 1: Paris
         np.array([0.1, 0.9, 0.1] + [0.0]*(384-3), dtype='float32'), # Doc 2: Python
         np.array([0.1, 0.1, 0.9] + [0.0]*(384-3), dtype='float32'), # Doc 3: Streamlit
     ]
-    mock_embedding_function.side_effect = init_embeddings
+    init_embedding_mock.side_effect = init_embeddings
     
-    system = RAGSystem(sample_documents, embedding_function=mock_embedding_function)
+    system = RAGSystem(sample_documents, embedding_function=init_embedding_mock)
 
-    # After initialization, reset mock and set a default return_value for retrieval queries
-    mock_embedding_function.reset_mock()
-    mock_embedding_function.return_value = np.array([0.5]*384, dtype='float32') # Default for query embeddings
-
+    # Yield the system, and the embedding_function passed to retrieve will be the one from mock_embedding_function fixture
     yield system
 
 def test_rag_system_init(rag_system_instance, sample_documents):
@@ -91,7 +89,7 @@ def mock_gemini_model_instance():
 def test_generate_response(mock_gemini_model_instance):
     query = "What is the capital of France?"
     retrieved_docs = ["The capital of France is Paris."]
-    response = generate_response(query, retrieved_docs, llm_model=mock_gemini_model_instance)
+    response = generate_response(query, retrieved_docs, selected_model="gemini-2.0-flash", llm_model=mock_gemini_model_instance)
 
     expected_prompt_part = f"You are a helpful assistant. Based on the following context, answer the query comprehensively.\n\nContext: {retrieved_docs[0]}\n\nQuery: {query}\n\nAnswer:"
     
@@ -121,7 +119,7 @@ def test_generate_response_error_handling(mock_gemini_model_instance):
 
     query = "Test query"
     retrieved_docs = ["Test document."]
-    response = generate_response(query, retrieved_docs, llm_model=mock_gemini_model_instance)
+    response = generate_response(query, retrieved_docs, selected_model="gemini-2.0-flash", llm_model=mock_gemini_model_instance)
 
     # The expected call will also include generation_config and safety_settings
     expected_prompt_part = f"You are a helpful assistant. Based on the following context, answer the query comprehensively.\n\nContext: {retrieved_docs[0]}\n\nQuery: {query}\n\nAnswer:"

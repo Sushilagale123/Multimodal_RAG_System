@@ -103,13 +103,13 @@ def process_video(video_file):
 
 # 3. Response Generation Layer (Google Gemini)
 @st.cache_resource
-def load_gemini_model(model_name="gemini-pro"):
+def load_gemini_model(model_name="gemini-2.0-flash"):
     return genai.GenerativeModel(model_name)
 
 # Initialize with a default model
 gemini_model = load_gemini_model()
 
-def generate_response(query, retrieved_documents, selected_model="gemini-pro", temperature=0.7, top_p=0.9, top_k=1, llm_model=None):
+def generate_response(query, retrieved_documents, selected_model="gemini-2.0-flash", temperature=0.7, top_p=0.9, top_k=1, llm_model=None):
     if llm_model is None:
         llm_model = load_gemini_model(selected_model)
     context = " ".join(retrieved_documents)
@@ -150,7 +150,7 @@ st.markdown("Welcome! This application demonstrates a Retrieval-Augmented Genera
 st.sidebar.header("⚙️ LLM Configuration")
 selected_gemini_model = st.sidebar.selectbox(
     "Choose Gemini Model:",
-    ["gemini-pro", "gemini-pro-vision"], # Add more models as needed/available
+    ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"], # Add more models as needed/available
     index=0
 )
 
