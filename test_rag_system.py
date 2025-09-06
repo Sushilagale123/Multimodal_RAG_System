@@ -1,10 +1,10 @@
+
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 import numpy as np
-# Import the actual instances directly from app.py
 from app import get_text_embedding, RAGSystem, generate_response, model as app_sentence_model, gemini_model as app_gemini_model
 
-# Mock the SentenceTransformer instance in app.py (still needed for test_get_text_embedding directly)
+# Mock the SentenceTransformer instance in app.py
 @pytest.fixture
 def mock_sentence_transformer_instance():
     with patch('app.model') as mock_model:
@@ -14,7 +14,7 @@ def mock_sentence_transformer_instance():
 # Test cases for Text Embedding
 def test_get_text_embedding(mock_sentence_transformer_instance):
     text = "test sentence"
-    embedding = get_text_embedding(text, embedding_model=mock_sentence_transformer_instance) # Inject mock
+    embedding = get_text_embedding(text, embedding_model=mock_sentence_transformer_instance)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape == (384,)
     mock_sentence_transformer_instance.encode.assert_called_with(text)
@@ -34,8 +34,9 @@ def mock_embedding_function():
     yield MagicMock()
 
 @pytest.fixture
-def rag_system_instance(sample_documents):
-    # Create a separate mock for RAGSystem initialization
+def rag_system_instance_for_init(sample_documents):
+    # This fixture provides an RAGSystem instance where its internal embedding_function
+    # is mocked during its __init__ to return specific values for the documents.
     init_embedding_mock = MagicMock()
     init_embeddings = [
         np.array([0.9, 0.1, 0.1] + [0.0]*(384-3), dtype='float32'), # Doc 1: Paris
@@ -45,44 +46,49 @@ def rag_system_instance(sample_documents):
     init_embedding_mock.side_effect = init_embeddings
     
     system = RAGSystem(sample_documents, embedding_function=init_embedding_mock)
-
-    # Yield the system, and the embedding_function passed to retrieve will be the one from mock_embedding_function fixture
     yield system
 
-def test_rag_system_init(rag_system_instance, sample_documents):
-    system = rag_system_instance
+
+def test_rag_system_init(rag_system_instance_for_init, sample_documents):
+    system = rag_system_instance_for_init
     assert len(system.documents) == len(sample_documents)
     assert system.dimension == 384
 
-def test_rag_system_retrieve_single_document(rag_system_instance, mock_embedding_function):
-    system = rag_system_instance
+def test_rag_system_retrieve_single_document(rag_system_instance_for_init, mock_embedding_function):
+    system = rag_system_instance_for_init
     query = "France capital"
-    # Configure the mock specifically for this retrieval query
-    query_embedding_val = np.array([0.9, 0.1, 0.1] + [0.0]*(384-3), dtype='float32')
-    mock_embedding_function.return_value = query_embedding_val
     
-    retrieved = system.retrieve(query, k=1)
-    assert len(retrieved) == 1
-    assert retrieved[0] == "The capital of France is Paris."
-    mock_embedding_function.assert_called_once_with(query)
+    # Patch the embedding function within the RAGSystem instance for this specific test's retrieve call
+    with patch.object(system, 'embedding_function', new=mock_embedding_function):
+        query_embedding_val = np.array([0.9, 0.1, 0.1] + [0.0]*(384-3), dtype='float32')
+        mock_embedding_function.return_value = query_embedding_val
+        
+        retrieved = system.retrieve(query, k=1)
+        assert len(retrieved) == 1
+        assert retrieved[0] == "The capital of France is Paris."
+        mock_embedding_function.assert_called_once_with(query)
 
-def test_rag_system_retrieve_multiple_documents(rag_system_instance, mock_embedding_function):
-    system = rag_system_instance
+def test_rag_system_retrieve_multiple_documents(rag_system_instance_for_init, mock_embedding_function):
+    system = rag_system_instance_for_init
     query = "programming language and web apps"
-    # Configure the mock specifically for this retrieval query
-    query_embedding_val = np.array([0.1, 0.8, 0.8] + [0.0]*(384-3), dtype='float32')
-    mock_embedding_function.return_value = query_embedding_val
-
-    retrieved = system.retrieve(query, k=2)
-    assert len(retrieved) == 2
-    assert "Python is a programming language." in retrieved
-    assert "Streamlit is for building web apps." in retrieved
-    mock_embedding_function.assert_called_once_with(query)
+    
+    # Patch the embedding function within the RAGSystem instance for this specific test's retrieve call
+    with patch.object(system, 'embedding_function', new=mock_embedding_function):
+        query_embedding_val = np.array([0.1, 0.8, 0.8] + [0.0]*(384-3), dtype='float32')
+        mock_embedding_function.return_value = query_embedding_val
+        
+        retrieved = system.retrieve(query, k=2)
+        assert len(retrieved) == 2
+        assert "Python is a programming language." in retrieved
+        assert "Streamlit is for building web apps." in retrieved
+        mock_embedding_function.assert_called_once_with(query)
 
 # Mock the Gemini model instance in app.py
 @pytest.fixture
 def mock_gemini_model_instance():
-    with patch('app.gemini_model') as mock_gemini:
+    with patch('app.genai.GenerativeModel') as mock_generative_model_class:
+        mock_gemini = MagicMock()
+        mock_generative_model_class.return_value = mock_gemini
         mock_gemini.generate_content.return_value.text = "This is a generated response based on the context."
         yield mock_gemini
 
